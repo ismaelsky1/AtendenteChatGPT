@@ -22,19 +22,24 @@ interface CustomerChat {
 async function completion(
   messages: ChatCompletionRequestMessage[]
 ): Promise<string | undefined> {
-  const completion = await openai.createChatCompletion({
-    model: "gpt-3.5-turbo",
-    temperature: 0,
-    max_tokens: 256,
-    messages,
-  })
+  try {
+    const completion = await openai.createChatCompletion({
+      model: "gpt-3.5-turbo",
+      temperature: 0,
+      max_tokens: 256,
+      messages,
+    })
 
-  return completion.data.choices[0].message?.content
+    return completion.data.choices[0].message?.content
+  } catch (error: any) {
+    console.error('error',error.response.data.error)
+  }
+
 }
 
 create({
-  session: "food-gpt",
-  disableWelcome: true,
+  session: "atendimento-gpt",
+  disableWelcome: true
 })
   .then(async (client: Whatsapp) => await start(client))
   .catch((err) => {
@@ -42,7 +47,7 @@ create({
   })
 
 async function start(client: Whatsapp) {
-  const storeName = "Pizzaria Los Italianos"
+  const storeName = "J.Pinheiro Fotografia"
 
   client.onMessage(async (message: Message) => {
     if (!message.body || message.isGroupMsg) return
@@ -58,21 +63,21 @@ async function start(client: Whatsapp) {
       lastChat?.status === "open"
         ? (lastChat as CustomerChat)
         : {
-            status: "open",
-            orderCode,
-            chatAt: new Date().toISOString(),
-            customer: {
-              name: customerName,
-              phone: customerPhone,
+          status: "open",
+          orderCode,
+          chatAt: new Date().toISOString(),
+          customer: {
+            name: customerName,
+            phone: customerPhone,
+          },
+          messages: [
+            {
+              role: "system",
+              content: initPrompt(storeName, orderCode),
             },
-            messages: [
-              {
-                role: "system",
-                content: initPrompt(storeName, orderCode),
-              },
-            ],
-            orderSummary: "",
-          }
+          ],
+          orderSummary: "",
+        }
 
     console.debug(customerPhone, "👤", message.body)
 
@@ -102,7 +107,7 @@ async function start(client: Whatsapp) {
       customerChat.messages.push({
         role: "user",
         content:
-          "Gere um resumo de pedido para registro no sistema da pizzaria, quem está solicitando é um robô.",
+          "Gere um resumo de orcamento para apresenta a fotografa, quem está solicitando é um robô.",
       })
 
       const content =
